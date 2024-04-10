@@ -1,10 +1,11 @@
 import numpy as np
+from scipy.stats import mode
 from tqdm import tqdm
 
-num_reserve_samples = 10000
+num_reserve_samples = 5000
 min_bid, max_bid = 900, 1000
 
-epochs = 250
+epochs = 500
 best_ranges = []
 for _ in tqdm(range(epochs)):
     reserve_sample = np.random.triangular(min_bid, max_bid, max_bid, num_reserve_samples)
@@ -25,5 +26,5 @@ for _ in tqdm(range(epochs)):
     best_ranges.append(best_range)
 
 # print(best_ranges)
-best_best_range = np.mean(np.array(best_ranges), axis=0)
-print(best_best_range)
+range_mode = mode(best_ranges, axis=0).mode
+print(range_mode)
