@@ -1,80 +1,39 @@
-from datamodel import OrderDepth, UserId, TradingState, Order
-import jsonpickle
 import numpy as np
-from typing import List
-import string
+import time
 
-class Trader:
-    def __init__(self):
-        self.window_size = 20
-    
-    def run(self, state: TradingState):
-        print("traderData: " + state.traderData)
-        print("Observations: " + str(state.observations))
+input_size = 20
 
-        try:
-            decoded = jsonpickle.decode(state.traderData)
-            h, prices = decoded['h'], decoded['prices']
-        except:
-            h = None
-            prices = self.prices_init
+class Speedtest:
+    hidden_size = 64
+    # W_ih_l0 = np.random.randn(hidden_size, input_size)
+    # W_hh_l0 = np.random.randn(hidden_size, hidden_size)
+    # b_ih_l0 = np.random.randn(hidden_size)
+    # b_hh_l0 = np.random.randn(hidden_size)
+    # fc_W = np.random.randn(1, hidden_size)
+    # fc_b = np.random.randn(1)
 
-		# Orders to be placed on exchange matching engine
-        result = {}
-        for product in state.order_depths:
-            order_depth: OrderDepth = state.order_depths[product]
-            orders: List[Order] = []
-    
-            if product == 'starfruit':
-                avg_price = self.calc_avg_price(order_depth)
-                # remove the earliest price and append the latest price
-                prices = np.append(prices[1:], avg_price)
-                next_price_pred, h = self.rnn_forward(prices, h)
-                acceptable_price = next_price_pred
-            else:
-                # amethyst
-                acceptable_price = 10_000
-            print("Acceptable price : " + str(acceptable_price))
-            print("Buy Order depth : " + str(len(order_depth.buy_orders)) + ", Sell order depth : " + str(len(order_depth.sell_orders)))
-
-            if len(order_depth.sell_orders) != 0:
-                best_ask, best_ask_amount = list(order_depth.sell_orders.items())[0]
-                if int(best_ask) < acceptable_price:
-                    print("BUY", str(-best_ask_amount) + "x", best_ask)
-                    orders.append(Order(product, best_ask, -best_ask_amount))
-    
-            if len(order_depth.buy_orders) != 0:
-                best_bid, best_bid_amount = list(order_depth.buy_orders.items())[0]
-                if int(best_bid) > acceptable_price:
-                    print("SELL", str(best_bid_amount) + "x", best_bid)
-                    orders.append(Order(product, best_bid, -best_bid_amount))
-            
-            result[product] = orders
-    
-		# String value holding Trader state data required. 
-		# It will be delivered as TradingState.traderData on next execution.
-        traderData = jsonpickle.encode({'h': h, 'prices': prices})
-        
-		# Sample conversion request. Check more details below. 
-        conversions = 1
-        return result, conversions, traderData
-        
-    def rnn_forward(self, x: np.ndarray, h: np.ndarray=None):
+    def rnn_forward(self, x, h=None):
+        print(self.W_ih_l0.shape)
+        print(self.W_hh_l0.shape)
+        print(self.b_ih_l0.shape)
+        print(self.b_hh_l0.shape)
+        print(self.fc_W.shape)
+        print(self.fc_b.shape)
         if h is None:
-            h = np.zeros(self.hidden_size, dtype=np.float32)
+            h = np.zeros(self.W_hh_l0.shape[0])
         h = np.tanh(np.dot(self.W_ih_l0, x)[:, None] + self.b_ih_l0 + np.dot(self.W_hh_l0, h)[:, None] + self.b_hh_l0)
+        print('h', h.shape)
         out = np.dot(self.fc_W, h) + self.fc_b
-        return out.item(), h
-
-    def calc_avg_price(self, order_depth: OrderDepth):
-        buy_orders = order_depth.buy_orders
-        sell_orders = order_depth.sell_orders
-        order_prices = np.array(list(buy_orders.keys()) + list(sell_orders.keys()))
-        order_amounts = np.array(list(buy_orders.values()) + list(sell_orders.values()))
-        return np.average(order_prices, weights=order_amounts)
-
-    prices_init = np.array([5052, 5056, 5056, 5052, 5052, 5053, 5053, 5058, 5057, 5059, 5053, 5051, 5056, 5056, 5050, 5050, 5055, 5050, 5049, 5048])
-
+        return out, h
+    
+    def speedtest(self, input_tensor):
+        start_time = time.time()
+        output, hidden_state = self.rnn_forward(input_tensor)
+        end_time = time.time()
+        execution_time = end_time - start_time
+        print(f"RNN forward execution time: {execution_time} seconds")
+        print(output.shape, hidden_state.shape)
+    
     W_ih_l0 = np.array([	[6.4316, 6.4436, 6.4422, 6.5827, 6.3057, 6.3623, 6.3077, 6.3517, 6.4298, 6.2674, 6.5120, 6.5470, 6.5893, 6.6051, 6.4540, 6.5793, 6.4097, 6.5024, 6.2855, 6.4908],
 	[0.1444, 0.1231, -0.0351, -0.1715, -0.1502, -0.0015, 0.1636, 0.0448, -0.0769, 0.1329, -0.0426, -0.0954, -0.0393, -0.1778, 0.1355, 0.1647, -0.0492, -0.1301, 0.1039, -0.1746],
 	[6.2743, 6.4480, 6.4612, 6.4245, 6.4541, 6.3909, 6.2508, 6.3702, 6.4523, 6.2749, 6.4655, 6.3373, 6.4462, 6.4025, 6.5442, 6.2894, 6.4417, 6.4220, 6.2264, 6.4225],
@@ -107,7 +66,6 @@ class Trader:
 	[6.2881, 6.4847, 6.4697, 6.4715, 6.3200, 6.3676, 6.3768, 6.5220, 6.5337, 6.4702, 6.3389, 6.4419, 6.2701, 6.5640, 6.5528, 6.3534, 6.3583, 6.2265, 6.4123, 6.3673],
 	[0.0073, -0.0972, -0.0860, 0.0824, 0.0658, -0.1555, -0.0927, 0.0479, 0.0284, 0.1549, -0.1306, -0.0366, -0.0128, -0.0495, 0.1341, 0.0130, -0.0018, -0.0601, 0.0540, 0.0337],
 	[0.0308, 0.0280, -0.0090, -0.1654, -0.1339, -0.1278, -0.0028, -0.1346, 0.0547, 0.0094, 0.1760, 0.0337, -0.0382, -0.0341, 0.1229, 0.1091, 0.0277, 0.0253, -0.1322, -0.1350],])
-
     W_hh_l0 = np.array([	[6.2689, -6.2466, 6.4893, -6.4957, -6.3325, -6.2235, -6.4218, 6.5860, -6.5290, -6.4121, -6.4388, -6.4269, -6.5538, -6.5335, -6.4926, -6.3179, 6.3217, -6.5110, -6.3543, -6.2954, -6.5950, 6.5636, -6.3474, -6.2557, -6.3478, 6.5266, 6.3222, -6.3558, -6.4942, 6.5608, -6.4863, -6.3766],
 	[-0.1191, -0.0683, 0.0390, 0.0588, 0.0640, -0.0369, -0.1799, -0.0178, -0.1278, -0.1637, -0.0875, -0.1269, -0.0716, -0.1234, 0.0040, 0.0531, -0.1323, 0.1406, 0.1303, 0.1618, 0.1370, -0.0297, -0.1241, 0.1596, 0.0422, -0.0952, -0.1482, 0.1635, 0.1600, 0.0365, 0.0195, -0.0849],
 	[6.4289, -6.3637, 6.4967, -6.5411, -6.4586, -6.4278, -6.2552, 6.4687, -6.3488, -6.4675, -6.4732, -6.4835, -6.2763, -6.3708, -6.3351, -6.3050, 6.2654, -6.4316, -6.5247, -6.2920, -6.3313, 6.4459, -6.5254, -6.2133, -6.2118, 6.2881, 6.2444, -6.2261, -6.3966, 6.3001, -6.4707, -6.5248],
@@ -142,10 +100,14 @@ class Trader:
 	[-0.0725, 0.1035, 0.0773, 0.0992, 0.0365, -0.1482, -0.0102, -0.0959, -0.1655, -0.0274, 0.1116, -0.0896, 0.0971, 0.0777, -0.0744, 0.0582, 0.1352, 0.0696, -0.1173, -0.1557, -0.0149, 0.0605, -0.0310, -0.0733, 0.0112, 0.0406, 0.1177, 0.1176, 0.1382, -0.0321, 0.0502, 0.0992],])
 
     b_hh_l0 = np.array([[6.5985], [0.0566], [6.4935], [0.0782], [0.1379], [0.0606], [0.0869], [6.5874], [0.0349], [0.0337], [-0.0990], [0.1183], [-0.0320], [0.0918], [0.0103], [0.0510], [6.5937], [-0.1575], [-0.1903], [-0.1238], [-0.1684], [6.1958], [-0.1632], [0.0967], [0.0505], [6.6142], [6.3956], [-0.0705], [0.0694], [6.4079], [-0.0579], [-0.1472]])
-
     b_ih_l0 = np.array([	[6.2690],	[-0.0622],	[6.5225],	[0.0284],	[-0.1371],	[-0.0859],	[0.1142],	[6.6692],	[-0.0781],	[-0.0400],	[-0.1919],	[0.1576],	[0.1101],	[-0.0404],	[-0.1409],	[-0.1010],	[6.2738],	[0.1115],	[-0.0812],	[0.0712],	[-0.0021],	[6.4673],	[0.1014],	[0.0048],	[0.0355],	[6.6004],	[6.4900],	[0.0642],	[-0.1515],	[6.5777],	[0.1466],	[0.0793],])
 
     fc_W = np.array([[4.9386, -4.9162, 4.9751, -4.8353, -4.7898, -4.8199, -4.8383, 4.7889, -4.9265, -4.9335, -4.7863, -4.9212, -4.8956, -4.8582, -4.6464, -4.8845, 4.9281, -4.8406, -4.8946, -4.8688, -4.8102, 4.9846, -4.8588, -4.8086, -4.8411, 4.8082, 4.9309, -4.6889, -4.6400, 4.9591, -4.8715, -4.8942]])
 
     fc_b = np.array([[4.9124]])
 
+
+if __name__ == '__main__':
+    speedtest = Speedtest()
+    input_tensor = np.random.randn(input_size)
+    speedtest.speedtest(input_tensor)
