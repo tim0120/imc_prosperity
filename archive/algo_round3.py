@@ -8,7 +8,7 @@ class Trader:
     def __init__(self):
         self.window_size = 20
         self.max_positions = {'STARFRUIT': 20, 
-                              'AMETHYST': 20,
+                              'AMETHYSTS': 20,
                               'ORCHID': 20,
                               'CHOCOLATE': 250,
                               'STRAWBERRIES': 350,
@@ -29,6 +29,8 @@ class Trader:
 		# Orders to be placed on exchange matching engine
         result = {}
         for product in state.order_depths:
+            print(f'this is the data type of product:{type(product)}')
+            print(f'this is the product --> {product}')
             order_depth: OrderDepth = state.order_depths[product]
             orders: List[Order] = []
             acceptable_price = 10000
@@ -45,13 +47,13 @@ class Trader:
                 print(f'this is the current humidity --> {humidity}')
             # print("Acceptable price : " + str(acceptable_price))
             # print("Buy Order depth : " + str(len(order_depth.buy_orders)) + ", Sell order depth : " + str(len(order_depth.sell_orders)))
-            if len(order_depth.sell_orders) != 0 and current_position >= -self.max_positions[product]:
+            if len(order_depth.sell_orders) != 0:
                 best_ask, best_ask_amount = list(order_depth.sell_orders.items())[0]
                 if int(best_ask) < acceptable_price:
                     # print("BUY", str(-best_ask_amount) + "x", best_ask)
                     orders.append(Order(product, best_ask, -best_ask_amount))
     
-            if len(order_depth.buy_orders) != 0 and current_position <= self.max_positions[product] :
+            if len(order_depth.buy_orders) != 0:
                 best_bid, best_bid_amount = list(order_depth.buy_orders.items())[0]
                 if int(best_bid) > acceptable_price:
                     # print("SELL", str(best_bid_amount) + "x", best_bid)
