@@ -7,6 +7,13 @@ import string
 class Trader:
     def __init__(self):
         self.window_size = 20
+        self.max_positions = {'STARFRUIT': 20, 
+                              'AMETHYST': 20,
+                              'ORCHID': 20,
+                              'CHOCOLATE': 250,
+                              'STRAWBERRIES': 350,
+                              'ROSES': 60,
+                              'GIFT_BASKET': 60}
     
     def run(self, state: TradingState):
         print("traderData: " + state.traderData)
@@ -22,31 +29,29 @@ class Trader:
 		# Orders to be placed on exchange matching engine
         result = {}
         for product in state.order_depths:
-            print(f'this is the current product --> {product}')
             order_depth: OrderDepth = state.order_depths[product]
             orders: List[Order] = []
-			
-			
-            if product == 'amethyst':
-                acceptable_price = 10000
-            elif product == 'starfruit':
+            acceptable_price = 10000
+            current_position = state.position[product] if product in state.position else 0
+            if product == 'STARFRUIT':
                 avg_price = self.calc_avg_price(order_depth)
                 # remove the earliest price and append the latest price
                 prices = np.append(prices[1:], avg_price)
                 next_price_pred, h = self.rnn_forward(prices, h)
                 acceptable_price = next_price_pred
-            elif product == 'orchid':
-                print(f'this is the current humidity --> {state.observations.humidity}')
-                acceptable_price = 10000000
+            elif product == 'ORCHID':
+                current_observations = state.observations.conversionObservations['ORCHIDS']
+                humidity = current_observations.humidity
+                print(f'this is the current humidity --> {humidity}')
             # print("Acceptable price : " + str(acceptable_price))
             # print("Buy Order depth : " + str(len(order_depth.buy_orders)) + ", Sell order depth : " + str(len(order_depth.sell_orders)))
-            if len(order_depth.sell_orders) != 0:
+            if len(order_depth.sell_orders) != 0 and current_position >= -self.max_positions[product]:
                 best_ask, best_ask_amount = list(order_depth.sell_orders.items())[0]
                 if int(best_ask) < acceptable_price:
                     # print("BUY", str(-best_ask_amount) + "x", best_ask)
                     orders.append(Order(product, best_ask, -best_ask_amount))
     
-            if len(order_depth.buy_orders) != 0:
+            if len(order_depth.buy_orders) != 0 and current_position <= self.max_positions[product] :
                 best_bid, best_bid_amount = list(order_depth.buy_orders.items())[0]
                 if int(best_bid) > acceptable_price:
                     # print("SELL", str(best_bid_amount) + "x", best_bid)
