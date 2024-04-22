@@ -56,7 +56,6 @@ class Trader:
                 elif can_sell:
                     if best_bid > acceptable_price:
                         orders.append(Order(product, best_bid, -best_bid_amount))
-            
             result[product] = orders
     
     
