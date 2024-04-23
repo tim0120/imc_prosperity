@@ -10,7 +10,9 @@ class Trader:
                         'CHOCOLATE': 250,
                         'STRAWBERRIES': 350,
                         'ROSES': 60,
-                        'GIFT_BASKET': 60}
+                        'GIFT_BASKET': 60,
+                        'COCONUT': 300,
+                        'COCONUT_COUPON': 600}
 
     def run(self, state: TradingState):
         # Only method required. It takes all buy and sell orders for all symbols as an input, and outputs a list of orders to be sent
